@@ -1,97 +1,181 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    scrollbar-width: none;
+    background-color: #FFFFDD;
+}
 .menu {
-    position: absolute;
+    position: relative;
     margin: 1.5rem;
-    padding: 1rem;
+    padding: 0;
+
     display: flex;
     flex-direction: column;
     align-items: start;
     justify-content: flex-start;
     gap: 1px;
-    border-style: solid;
-    border-color: gray;
-    border-width: 2px;
-    border-radius: 0.1rem;
-    top: 0px;
-    right: 0px;
-    left: 0px;
-    bottom: 0px;
+
+    height: 100vh;
+    width: 100vw;
+    min-width: 400px;
+    margin:0;
+    box-sizing: border-box;
+}
+.pale-red {
+    background-color: #FFB3B3;
 }
 
-.para {
-    font-family: 'Orbitron', sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 400;
-    font-style: normal;
-    font-size: x-large;
-    letter-spacing: 0.1rem;
-
-    color: black;
-    margin: 0;
-    text-wrap-mode: wrap;
-    word-break: keep-all;
+.pale-orange {
+    background-color: #FFD1A6;
 }
-.heading {
-    margin-left: 1rem;
-    font-size: 48px;
+.pale-blue {
+    background-color: #B3E5FF;
 }
-.sub-heading {
-    font-size: 16px;
-    margin-left: 1rem;
+.pale {
+    background-color: #FFFFDD;
 }
 
-.orbitron-font {
-    font-family: 'Orbitron', sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 400;
-    font-style: normal;
-}
-
-.check-box-container {
-    position: absolute;
-    top: 10%;
-    left: -7px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.check-box {
-    height: 7px;
-    width: 7px;
-    background: snow;
-
-    border-style: solid;
-    border-color: black;
-    border-width: 2px;
-    border-radius: 0.1rem;
-}
-
-.corner-frame {
+.socials-links {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    height: 10%;
-    width: 20%;
+    margin-right: 1.5rem;
+    margin-top: 1.5rem;
 
-    border-width: 2px;
-    border-bottom: 0px;
-    border-left: 0px;
-    border-style: solid;
-    border-color: gray;
+    display: flex;
+    align-items: center;
+    justify-items: flex-end;
+    gap: 1rem;
 }
 
-.about-paragraph {
+.project-container {
+    width: 80%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.project-container p {
+    min-width: 150px;
+    text-align: center;
+}
+
+
+.social-name {
     font-family: 'Orbitron', sans-serif;
     font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    font-size: 16px;
+    height: 20px;
+    margin-top: 0;
+    letter-spacing: 1px;
+    cursor: crosshair;
+    color: gray;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.social-name:hover {
     color: black;
-    text-align: right;
+}
 
-    position: absolute;
-    top: 1rem;
-    right: 2rem;
-    width: 33%;
+.video-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+}
 
+.video-header {
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    gap: 1rem;
+}
+
+.is-live-light {
+    border-radius: 50%;
+    background-color: gray;
+    width: 5px;
+    height: 5px;
+}
+
+.is-live-light.live {
+    animation: blinking-light 1s infinite;
+}
+@keyframes blinking-light {
+    0% { }
+    50% {
+        background-color: red;
+        box-shadow: 0px 0px 5px 5px rgba(256, 0, 0, 0.3);
+    }
+    100% {}
+}
+
+.video-description {
+    font-family: 'Orbitron', sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    color: black;
+    width: 100%;
+}
+
+.heading {
+    margin-left: 1rem !important;
+    font-size: 48px !important;
+    margin: 0;
+}
+
+.sub-heading {
+    font-size: 16px;
+    margin: 0;
+    margin-left: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+.font {
+    font-family: 'Orbitron', sans-serif;
+    font-optical-sizing: auto;
+    letter-spacing: 0.1rem;
+
+    color: black;
+    text-wrap-mode: wrap;
+    word-break: keep-all;
+}
+
+.para {
+    margin: 0;
+    cursor:crosshair;
+    font-size: medium;
+    font-weight: 500;
+    color: gray;
+    max-width: 100px;
+}
+
+.para:hover {
+    color: black;
+}
+
+.body-row-split {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+}
+
+/* Hide on small screens */
+@media (max-width: 650px) {
+    .socials-links {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin-right: 0;
+        align-self: center;
+        flex-direction: row;
+    }
 }

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+DOMAIN="jolsho.com"
+
+# GENERATE SOME CERTS
+if [ ! -f ./assets/server.crt ]; then
+    if [ $# -eq 0 ]; then
+        openssl req -x509 -newkey rsa:2048 \
+            -keyout ./assets/server.key \
+            -out ./assets/server.crt \
+            -sha256 -days 365 -nodes -subj "/CN=localhost"
+
+    elif [ $# -eq 1 ] && [ "$1" = "-production" ]; then
+       # Install Certbot if not already installed
+        if ! command -v certbot &> /dev/null; then
+            sudo apt-get update -y
+            sudo apt-get install -y certbot
+        fi
+
+        echo "Generating new certificates..."
+        sudo certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos -m admin@"$DOMAIN"
+        sudo cp /etc/letsencrypt/live/"$DOMAIN"/fullchain.pem ./assets/server.crt
+        sudo cp /etc/letsencrypt/live/"$DOMAIN"/privkey.pem ./assets/server.key
+        sudo chown $(whoami):$(whoami) ./assets/server.*
+
+    else
+        echo "Usage: $0 [-production || _]"
+        exit 1
+    fi
+else
+    echo "Certificates already exist. Skipping generation."
+fi
+
+# Install Docker & Compose if missing
+if ! command -v docker &> /dev/null; then
+  echo "Installing Docker..."
+  sudo apt-get install -y docker.io docker-compose-plugin certbot
+  sudo systemctl enable docker
+  sudo systemctl start docker
+fi
+
+echo "Building and starting containers..."
+docker compose build
+docker compose up -d
+echo "Setup complete. Go HTTPS server on 443, Nginx HLS internal on 8080."
+

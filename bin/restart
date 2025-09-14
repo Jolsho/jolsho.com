@@ -1,0 +1,14 @@
+#!/bin/bash
+
+docker stop go_proxy nginx
+docker rm go_proxy nginx
+docker rmi website-go_proxy:latest website-nginx:latest
+set -e
+
+if [ $# -eq 2 ] && [ "$2" = "build" ]; then
+    cd ui/
+    npm run build
+    cd ../
+fi
+
+docker compose up -d

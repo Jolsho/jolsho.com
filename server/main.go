@@ -1,23 +1,15 @@
-package server
+package main
 
-import (
-    "net/http"
-)
+import "server/servers"
 
-// TODO -- also just setup the server with TLS...
-const CERT = "/var/certs/cert."
-const KEY = "/var/certs/key."
 
 func main() {
+	state := servers.NewServerState()
+	start_https := servers.BuildHttps(state)
+	start_nginx := servers.BuildNginxServer(state)
 
-	// TODO -- add a rate limiting ip check thing
-	// check ips, and increment a viewer count based on 
-	// suffeceintly different IPs or something
-    http.HandleFunc("/live/main.m3u8", servePlaylist)
-    http.HandleFunc("/live/", serveSegment)
-
-    http.HandleFunc("/vod/main.m3u8", serveVodPlaylist)
-    http.HandleFunc("/vod/", serveVod)
-
-    http.ListenAndServeTLS(":8000", CERT, KEY, nil)
+	go start_https()
+	start_nginx()
 }
+
+

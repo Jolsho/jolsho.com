@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Auto-detect the main external interface
+EXT_IF=$(ip route | awk '/default/ {print $5}')
+MY_IP=$(echo $SSH_CLIENT | awk '{print $1}')
+
+if [ -z "$EXT_IF" ]; then
+    echo "Could not detect external interface. Please specify it manually."
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 {list|ssh|stream}"
+    exit 1
+fi
+
+case "$1" in
+    list)
+        sudo iptables -L DOCKER-USER -n
+        ;;
+    ssh)
+        sudo iptables -I DOCKER-USER -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
+        echo "SSH rule added on interface $EXT_IF"
+        ;;
+    stream)
+        sudo iptables -I DOCKER-USER -i "$EXT_IF" -p tcp --dport 1935 ! -s "$MY_IP" -j DROP
+        echo "Stream rule added on interface $EXT_IF"
+        ;;
+    *)
+        echo "Invalid argument. Use list, ssh, or stream."
+        exit 1
+        ;;
+esac
