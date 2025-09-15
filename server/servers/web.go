@@ -69,10 +69,14 @@ func BuildHttps(state *ServerState) func() {
 
 func (s *ServerState)rateLimitedHandler(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.visit_mux.RLock()
 		limiter, exists := s.visitors[r.RemoteAddr]
+		s.visit_mux.RUnlock()
 		if !exists {
-			limiter = rate.NewLimiter(2, 12) // 1 req/sec, burst 5
+			limiter = rate.NewLimiter(2, 12) // 2 req/sec, burst 12
+			s.visit_mux.Lock()
 			s.visitors[r.RemoteAddr] = limiter
+			s.visit_mux.Unlock()
 		}
 
         if !limiter.Allow() {

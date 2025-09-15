@@ -112,7 +112,9 @@ func publish(state *ServerState, w http.ResponseWriter, r *http.Request) {
 		Title: "Live",
 		Viewers: 0,
 	}
+	state.streams_mux.Lock()
 	state.streams[stream.Name] = stream
+	state.streams_mux.Unlock()
 
     w.WriteHeader(http.StatusOK)
     w.Write([]byte("OK"))
@@ -121,9 +123,13 @@ func publish(state *ServerState, w http.ResponseWriter, r *http.Request) {
 func publishDone(state *ServerState, w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	go RebuildM3U8("/var/hls/" + name)
-	state.streams[name].IsLive = false
-    w.WriteHeader(http.StatusOK)
-    w.Write([]byte("OK"))
+	if entry, ok := state.streams[name]; ok {
+		entry.mux.Lock()
+		entry.IsLive = false
+		entry.mux.Unlock()
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 // RebuildM3U8 rebuilds the index.m3u8 file with all .ts files in numeric order
@@ -165,13 +171,17 @@ func RebuildM3U8(dir string) error {
 }
 
 func newViewer(state *ServerState, w http.ResponseWriter, r *http.Request) {
+	state.streams_mux.Lock()
 	state.streams[r.FormValue("name")].Viewers++
+	state.streams_mux.Unlock()
     w.WriteHeader(http.StatusOK)
     w.Write([]byte("OK"))
 }
 
 func viewerLeft(state *ServerState, w http.ResponseWriter, r *http.Request) {
+	state.streams_mux.Lock()
 	state.streams[r.FormValue("name")].Viewers--
+	state.streams_mux.Unlock()
     w.WriteHeader(http.StatusOK)
     w.Write([]byte("OK"))
 }

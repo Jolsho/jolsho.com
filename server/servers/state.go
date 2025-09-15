@@ -1,9 +1,10 @@
 package servers
 
 import (
-	"net/http"
 	"encoding/json"
 	"log"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -12,9 +13,20 @@ import (
 
 type ServerState struct {
 	visitors map[string]*rate.Limiter
-	connected map[string]map[string]*websocket.Conn
+	visit_mux *sync.RWMutex
+
+	connected map[string]*Room
+	connected_mux *sync.RWMutex
+
 	allowedIps map[string]bool
+
 	streams map[string]*Stream
+	streams_mux *sync.RWMutex
+}
+
+type Room struct {
+	conns map[string]*websocket.Conn
+	mux *sync.RWMutex
 }
 
 type Stream struct {
@@ -22,17 +34,28 @@ type Stream struct {
 	IsLive 	bool
 	Title 	string
 	Viewers uint32
+	mux *sync.RWMutex
 }
 
 func NewServerState() *ServerState {
 	server := &ServerState{
-		visitors: make(map[string]*rate.Limiter),
-		connected: make(map[string]map[string]*websocket.Conn),
 		allowedIps: make(map[string]bool),
+
+		visitors: make(map[string]*rate.Limiter),
+		visit_mux: &sync.RWMutex{},
+
+		connected: make(map[string]*Room),
+		connected_mux: &sync.RWMutex{},
+
 		streams: make(map[string]*Stream),
+		streams_mux: &sync.RWMutex{},
 	}
 	server.allowedIps["172.18.0.1"] = true
-	server.connected["jolsho"] = make(map[string]*websocket.Conn)
+	room := &Room {
+		conns: make(map[string]*websocket.Conn),
+		mux: &sync.RWMutex{},
+	}
+	server.connected["jolsho"] = room
 	server.streams["jolsho"] = &Stream{
 		Name: "jolsho",
 		IsLive: false,
@@ -75,11 +98,14 @@ var upgrader = websocket.Upgrader{
 
 func (s *ServerState) HandleChat(w http.ResponseWriter, r *http.Request) {
 
-	room := r.URL.Query().Get("room")
-	if _,exists := s.connected[room]; !exists {
+	room_name := r.URL.Query().Get("room")
+	s.connected_mux.RLock()
+	room ,exists := s.connected[room_name]
+	if !exists {
 		http.Error(w, "Room doesnt exist", http.StatusBadRequest)
 		return
 	}
+	s.connected_mux.RUnlock()
 
 	// Upgrade the connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -88,16 +114,28 @@ func (s *ServerState) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	s.connected[room][r.RemoteAddr] = conn
+	s.connected_mux.Lock()
+	room.mux.Lock()
+	room.conns[r.RemoteAddr] = conn
+	room.mux.Unlock()
+	// Create a rate limiter for this connection: 5 messages per 10 seconds
+	limiter := rate.NewLimiter(rate.Every(2*time.Second), 5)
 
 	for {
 
 		// Read message from client
 		_, msgData, err := conn.ReadMessage()
 		if err != nil {
-			delete(s.connected[room], r.RemoteAddr)
+			room.mux.Lock()
+			delete(room.conns, r.RemoteAddr)
 			log.Println("Read error:", err)
 			break
+		}
+
+		// Check rate limit
+		if !limiter.Allow() {
+			log.Printf("Rate limit exceeded for %s\n", r.RemoteAddr)
+			continue // drop message
 		}
 
 		// Parse incoming JSON
@@ -114,10 +152,10 @@ func (s *ServerState) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 		// Echo the message back to clients
 		out, _ := json.Marshal(msg)
-		for ip, c := range s.connected[room] {
+		for ip, c := range room.conns {
 			if err := c.WriteMessage(websocket.TextMessage, out); err != nil {
 				log.Println("Write error:", err)
-				delete(s.connected[room], ip)
+				delete(room.conns, ip)
 				continue
 			}
 		}
