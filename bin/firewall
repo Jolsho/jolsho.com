@@ -18,16 +18,12 @@ case "$1" in
     list)
         sudo iptables -L DOCKER-USER -n
         ;;
-    ssh)
-        sudo iptables -I DOCKER-USER -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
-        echo "SSH rule added on interface $EXT_IF"
-        ;;
     stream)
         sudo iptables -I DOCKER-USER -i "$EXT_IF" -p tcp --dport 1935 ! -s "$MY_IP" -j DROP
         echo "Stream rule added on interface $EXT_IF"
         ;;
     *)
-        echo "Invalid argument. Use list, ssh, or stream."
+        echo "Invalid argument. Use list, or stream."
         exit 1
         ;;
 esac

@@ -12,5 +12,5 @@ WORKDIR /app
 COPY --from=builder /app/server .
 COPY --from=builder /app/dst ./dst
 
-RUN chmod +x server
+RUN chmod +x server && adduser -D webuser
 CMD ["./server"]

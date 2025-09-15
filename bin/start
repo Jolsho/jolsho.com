@@ -4,32 +4,49 @@ set -e
 DOMAIN="jolsho.com"
 
 # GENERATE SOME CERTS
-if [ ! -f ./assets/server.crt ]; then
-    if [ $# -eq 0 ]; then
-        openssl req -x509 -newkey rsa:2048 \
-            -keyout ./assets/server.key \
-            -out ./assets/server.crt \
-            -sha256 -days 365 -nodes -subj "/CN=localhost"
+ASSETS_DIR="./assets"
+CRT_FILE="$ASSETS_DIR/server.crt"
+KEY_FILE="$ASSETS_DIR/server.key"
 
-    elif [ $# -eq 1 ] && [ "$1" = "-production" ]; then
-       # Install Certbot if not already installed
-        if ! command -v certbot &> /dev/null; then
-            sudo apt-get update -y
-            sudo apt-get install -y certbot
-        fi
+mkdir -p "$ASSETS_DIR"
 
-        echo "Generating new certificates..."
-        sudo certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos -m admin@"$DOMAIN"
-        sudo cp /etc/letsencrypt/live/"$DOMAIN"/fullchain.pem ./assets/server.crt
-        sudo cp /etc/letsencrypt/live/"$DOMAIN"/privkey.pem ./assets/server.key
-        sudo chown $(whoami):$(whoami) ./assets/server.*
+# Function to copy certs from /etc/letsencrypt to ./assets
+copy_certs() {
+    sudo cp "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$CRT_FILE"
+    sudo cp "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$KEY_FILE"
+    sudo chown $(whoami):$(whoami) "$CRT_FILE" "$KEY_FILE"
+}
 
+# GENERATE SOME CERTS
+if [ $# -eq 1 ] && [ "$1" = "production" ]; then
+    # Check if certs already exist in /etc/letsencrypt
+    if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+        echo "Generating new production certificates for $DOMAIN..."
+        docker pull certbot/certbot
+        docker run -it --rm \
+          -v "/etc/letsencrypt:/etc/letsencrypt" \
+          -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+          certbot/certbot certonly --standalone \
+          -d "$DOMAIN" \
+          --non-interactive --agree-tos \
+          --email joshua.olson1@yahoo.com
     else
-        echo "Usage: $0 [-production || _]"
-        exit 1
+        echo "Certificates already exist in /etc/letsencrypt. Skipping generation."
     fi
+
+    # Copy certs to ./assets regardless
+    copy_certs
+
 else
-    echo "Certificates already exist. Skipping generation."
+    if [ ! -f "$CRT_FILE" ]; then
+        # Local development self-signed certs
+        echo "Generating local cert and key"
+        openssl req -x509 -newkey rsa:2048 \
+            -keyout "$KEY_FILE" \
+            -out "$CRT_FILE" \
+            -sha256 -days 365 -nodes \
+            -subj "/CN=localhost"
+    fi
 fi
 
 # Install Docker & Compose if missing
